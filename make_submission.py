@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from albumentations import Compose, Resize
 from africa_dataset import AfricanRGBDataset
-from simple_net import SimpleNetRGB
+from simple_net import SimpleNetAttentionRGB
 from catalyst.dl import SupervisedRunner, CheckpointCallback
 import pandas as pd
 import numpy as np
@@ -28,8 +28,8 @@ dates = (
     "2017-08-19",
 )
 csv_file_path = "data/test_rgb.csv"
-model_name = "simple_net"
-logdir = f"./logs/simple_net_final"
+model_name = "simple_net_attention_focal"
+logdir = f"./logs/simple_net_attention_focal/final"
 
 ids = pd.read_csv("data/test_rgb.csv")
 ids = ids['Field_Id'].values
@@ -48,7 +48,7 @@ dataset_length = len(testset)
 loaders = collections.OrderedDict()
 testloader = torch.utils.data.DataLoader(testset, shuffle=False)
 
-model = SimpleNetRGB(11)
+model = SimpleNetAttentionRGB(11)
 runner = SupervisedRunner(device="cuda")
 
 loaders["valid"] = testloader

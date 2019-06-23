@@ -1,14 +1,17 @@
 import collections
 import torch
 import torch.nn as nn
+from catalyst.contrib.models.classification.mobilenetv3 import MobileNetV3Small
 from albumentations import Compose, Resize
 from africa_dataset import AfricanRGBDataset
-from simple_net import SimpleNetRGB, SimpleNetFC
+from simple_net import SimpleNetRGB, SimpleNetAttentionRGB, SimpleNetDeeperRGB
 from catalyst.dl import SupervisedRunner
 from catalyst.dl.callbacks import EarlyStoppingCallback
+from catalyst.contrib.criterion import FocalLossMultiClass
+from ce_callback import CECallback
 
 if __name__ == "__main__":
-    bs = 32
+    bs = 128
     num_workers = 3
     num_epochs = 50
     dates = (
@@ -33,8 +36,8 @@ if __name__ == "__main__":
     # # KOSTIL' ALERT
     for i, fold_set in enumerate(fold_sets):
 
-    # fold_set = [(0, 1, 2), (0, 1, 2)]
-        logdir = f"./logs/simple_net_1layer/fold{i}"
+        # fold_set = [(0, 1, 2), (0, 1, 2)]
+        logdir = f"./logs/simple_net_deeper/fold{i}"
 
         trainset = AfricanRGBDataset(
             csv_file=csv_file_path,
@@ -64,7 +67,7 @@ if __name__ == "__main__":
         loaders["train"] = trainloader
         loaders["valid"] = valloader
 
-        model = SimpleNetRGB(11)
+        model = SimpleNetDeeperRGB(11) #SimpleNetAttentionRGB(11)
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters())
 
@@ -81,7 +84,7 @@ if __name__ == "__main__":
             num_epochs=num_epochs,
             verbose=True,
             callbacks=[
-                # AccuracyCallback(accuracy_args=[1]),
+                CECallback(),  # AccuracyCallback(accuracy_args=[1]),
                 EarlyStoppingCallback(patience=4, min_delta=0.001),
             ],
         )
