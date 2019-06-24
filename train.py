@@ -1,17 +1,16 @@
 import collections
 import torch
 import torch.nn as nn
-from catalyst.contrib.models.classification.mobilenetv3 import MobileNetV3Small
 from albumentations import Compose, Resize
 from africa_dataset import AfricanRGBDataset
-from simple_net import SimpleNetRGB, SimpleNetAttentionRGB, SimpleNetDeeperRGB
+from simple_net import SimpleNetRGB, SimpleNetAttentionRGB, SimpleNetDeeperRGB, SimpleNet3D
 from catalyst.dl import SupervisedRunner
 from catalyst.dl.callbacks import EarlyStoppingCallback
 from catalyst.contrib.criterion import FocalLossMultiClass
 from ce_callback import CECallback
 
 if __name__ == "__main__":
-    bs = 128
+    bs = 32
     num_workers = 3
     num_epochs = 50
     dates = (
@@ -37,7 +36,7 @@ if __name__ == "__main__":
     for i, fold_set in enumerate(fold_sets):
 
         # fold_set = [(0, 1, 2), (0, 1, 2)]
-        logdir = f"./logs/simple_net_deeper/fold{i}"
+        logdir = f"./logs/simple_net_3D/fold{i}"
 
         trainset = AfricanRGBDataset(
             csv_file=csv_file_path,
@@ -67,7 +66,7 @@ if __name__ == "__main__":
         loaders["train"] = trainloader
         loaders["valid"] = valloader
 
-        model = SimpleNetDeeperRGB(11) #SimpleNetAttentionRGB(11)
+        model = SimpleNet3D(11) #SimpleNetAttentionRGB(11)
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters())
 
