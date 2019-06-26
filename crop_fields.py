@@ -50,7 +50,7 @@ norm_values = {
     # "B12": {"min": 0, "max": 65536},
 }
 
-set_ = "train"
+set_ = "test"
 IMAGES_PATH = "data/images/"
 polygons_path = f"data/{set_}/{set_}.shp"
 df_path = f"data/{set_}_rgb.csv"
@@ -59,7 +59,7 @@ df = pandas.DataFrame(
         "Field_Id",
         "Band",
         "Subregion",
-        "Crop_Id_Ne",
+        # "Crop_Id_Ne",
         "Area",
         "2017-01-01",
         "2017-01-31",
@@ -97,7 +97,7 @@ for date in tqdm(dates):
                         label["Field_Id"],
                         band,
                         label["Subregion"],
-                        label["Crop_Id_Ne"],
+                        # label["Crop_Id_Ne"],
                         None,
                         None,
                         None,

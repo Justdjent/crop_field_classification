@@ -3,7 +3,7 @@ import collections
 import torch
 import torch.nn as nn
 from albumentations import Compose, Resize
-from africa_dataset import AfricanRGBDataset, AfricanImageDataset
+from africa_dataset import AfricanImageDataset
 from simple_net import SimpleNetRGB
 from catalyst.dl import SupervisedRunner, CheckpointCallback
 import pandas as pd
@@ -28,12 +28,13 @@ dates = (
     "2017-08-04",
     "2017-08-19",
 )
-csv_file_path = "data/test_rgb.csv"
+
+csv_file_path = "data/train_rgb.csv"
 model_name = "simple_net_nocrop"
 logdir = f"./logs/simple_net_nocrop/fold0"
 
-ids = pd.read_csv("data/test_rgb.csv")
-ids = ids['Field_Id'].values
+ids = pd.read_csv("data/train_rgb.csv")
+ids = ids[ids['Fold'] == 2]["Field_Id"].values
 
 data_transform = Compose([Resize(64, 64)])
 testset = AfricanImageDataset(
@@ -41,7 +42,7 @@ testset = AfricanImageDataset(
     dates=dates,
     root_dir="./",
     transform=data_transform,
-    train=False,
+    folds=(2,),
 )
 
 dataset_length = len(testset)
@@ -65,23 +66,9 @@ runner.infer(
 
 predictions = runner.callbacks[0].predictions["logits"].reshape(dataset_length, 9)
 predictions = sigmoid(predictions)
-# predictions = softmax(predictions, axis=1)
-predictions = np.concatenate([np.expand_dims(ids, axis=1), predictions], axis=1)
+predictions = np.argmax(predictions, axis=1) + 1
 
-pred_frame = pd.DataFrame(
-    predictions,
-    columns=[
-        "field_id",
-        "crop_id_1",
-        "crop_id_2",
-        "crop_id_3",
-        "crop_id_4",
-        "crop_id_5",
-        "crop_id_6",
-        "crop_id_7",
-        "crop_id_8",
-        "crop_id_9",
-    ]
-)
-pred_frame['field_id'] = pred_frame['field_id'].astype(np.int64)
-pred_frame.to_csv(f'data/submissions/{model_name}.csv', index=False)
+pred_frame = {"Field_Id": ids, "Predictions": predictions}
+
+pred_frame = pd.DataFrame(pred_frame)
+pred_frame.to_csv(f"data/validation/{model_name}_valid.csv", index=False)

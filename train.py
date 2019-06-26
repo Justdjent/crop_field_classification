@@ -5,7 +5,7 @@ from albumentations import Compose, Resize
 from africa_dataset import AfricanImageDataset, AfricanRGBDataset
 from simple_net import SimpleNetRGB, SimpleNetAttentionRGB, SimpleNetDeeperRGB, SimpleNet3D
 from catalyst.dl import SupervisedRunner
-from catalyst.dl.callbacks import EarlyStoppingCallback, OptimizerCallback, LRFinder
+from catalyst.dl.callbacks import EarlyStoppingCallback, LRFinder
 from catalyst.contrib.criterion import FocalLossMultiClass
 from ce_callback import CECallback
 from adamw import AdamW
@@ -13,7 +13,7 @@ from adamw import AdamW
 if __name__ == "__main__":
     bs = 32
     num_workers = 3
-    num_epochs = 30
+    num_epochs = 50
     dates = (
         "2017-01-01",
         "2017-01-31",
@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     data_transform = Compose([Resize(64, 64)])
 
-    fold_sets = [[(0, 1), (2,)], [(1, 2), (0,)], [(0, 2), (1,)]]
+    fold_sets = [[(0, 1), (2,)]]  # , [(1, 2), (0,)], [(0, 2), (1,)]]
     #
     # # KOSTIL' ALERT
     for i, fold_set in enumerate(fold_sets):
@@ -87,6 +87,6 @@ if __name__ == "__main__":
                 CECallback(),
                 # LRFinder(final_lr=0.1, num_steps=1000)
                 # AccuracyCallback(accuracy_args=[1]),
-               # EarlyStoppingCallback(patience=4, min_delta=0.001),
+               EarlyStoppingCallback(patience=4, min_delta=0.001),
             ],
         )
