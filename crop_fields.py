@@ -4,6 +4,7 @@ import geopandas
 from rasterio.mask import mask
 import os
 import numpy as np
+import cv2
 from tqdm import tqdm
 
 
@@ -49,7 +50,7 @@ norm_values = {
     # "B12": {"min": 0, "max": 65536},
 }
 
-set_ = "test"
+set_ = "train"
 IMAGES_PATH = "data/images/"
 polygons_path = f"data/{set_}/{set_}.shp"
 df_path = f"data/{set_}_rgb.csv"
@@ -58,7 +59,8 @@ df = pandas.DataFrame(
         "Field_Id",
         "Band",
         "Subregion",
-        # "Crop_Id_Ne",
+        "Crop_Id_Ne",
+        "Area",
         "2017-01-01",
         "2017-01-31",
         "2017-02-10",
@@ -95,7 +97,8 @@ for date in tqdm(dates):
                         label["Field_Id"],
                         band,
                         label["Subregion"],
-                        # label["Crop_Id_Ne"],
+                        label["Crop_Id_Ne"],
+                        None,
                         None,
                         None,
                         None,
@@ -113,20 +116,27 @@ for date in tqdm(dates):
 
                 # Image
                 write_path = os.path.join('data/images_cropped_rgb', set_)
+                masks_write_path = os.path.join('data/masks_cropped_rgb', set_)
                 os.makedirs(write_path, exist_ok=True)
-                image_path = os.path.join(write_path, f"{label['Field_Id']}_{band}_{date}.npy")
+                os.makedirs(masks_write_path, exist_ok=True)
+                image_path = os.path.join(write_path, f"{label['Field_Id']}_{band}_{date}.png")
+                mask_path = os.path.join(masks_write_path, f"{label['Field_Id']}_{band}_{date}.png")
                 df.at[ind, date] = image_path
                 polys_only, trans_masked = mask(
-                    dataset, [label["geometry"]], nodata=0, crop=True
+                    dataset, [label["geometry"]], nodata=0, crop=True, filled=False
                 )
                 # mask_ = polys_only == 0
+                df.loc[ind, 'Area'] = label["geometry"].area
                 # masked = np.ma.array(polys_only, mask=mask_)
-                min_, max_ = norm_values[band]["min"], norm_values[band]["max"]
+                # min_, max_ = norm_values[band]["min"], norm_values[band]["max"]
                 # norm_masked = normalize(masked, min_, max_, 0, 1)
-                polys_only = normalize(polys_only, min_, max_, 0, 1)
-                np.save(
-                    image_path,
-                    polys_only,
-                )
+                # polys_only = normalize(polys_only, min_, max_, 0, 1)
+                polys_only = np.transpose(polys_only, axes=(1, 2, 0))
+                cv2.imwrite(image_path, cv2.cvtColor(polys_only.data, cv2.COLOR_RGB2BGR))
+                cv2.imwrite(mask_path, np.logical_and.reduce(~polys_only.mask, axis=2).astype(np.uint8) * 255)
+                # np.save(
+                #     image_path,
+                #     polys_only,
+                # )
 
 df.to_csv(df_path, index=False)

@@ -2,17 +2,18 @@ import collections
 import torch
 import torch.nn as nn
 from albumentations import Compose, Resize
-from africa_dataset import AfricanRGBDataset
+from africa_dataset import AfricanImageDataset, AfricanRGBDataset
 from simple_net import SimpleNetRGB, SimpleNetAttentionRGB, SimpleNetDeeperRGB, SimpleNet3D
 from catalyst.dl import SupervisedRunner
-from catalyst.dl.callbacks import EarlyStoppingCallback
+from catalyst.dl.callbacks import EarlyStoppingCallback, OptimizerCallback, LRFinder
 from catalyst.contrib.criterion import FocalLossMultiClass
 from ce_callback import CECallback
+from adamw import AdamW
 
 if __name__ == "__main__":
     bs = 32
     num_workers = 3
-    num_epochs = 50
+    num_epochs = 30
     dates = (
         "2017-01-01",
         "2017-01-31",
@@ -36,9 +37,9 @@ if __name__ == "__main__":
     for i, fold_set in enumerate(fold_sets):
 
         # fold_set = [(0, 1, 2), (0, 1, 2)]
-        logdir = f"./logs/simple_net_3D/fold{i}"
+        logdir = f"./logs/simple_net_nocrop/fold{i}"
 
-        trainset = AfricanRGBDataset(
+        trainset = AfricanImageDataset(
             csv_file=csv_file_path,
             dates=dates,
             root_dir="./",
@@ -46,7 +47,7 @@ if __name__ == "__main__":
             folds=fold_set[0],
         )
 
-        valset = AfricanRGBDataset(
+        valset = AfricanImageDataset(
             csv_file=csv_file_path,
             dates=dates,
             root_dir="./",
@@ -66,9 +67,9 @@ if __name__ == "__main__":
         loaders["train"] = trainloader
         loaders["valid"] = valloader
 
-        model = SimpleNet3D(11) #SimpleNetAttentionRGB(11)
-        criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(model.parameters())
+        model = SimpleNetRGB(11) #SimpleNetAttentionRGB(11)
+        criterion = nn.CrossEntropyLoss()#FocalLossMultiClass()
+        optimizer = torch.optim.Adam(model.parameters())#SGD(model.parameters(), lr=0.01, weight_decay=0.1)
 
         # model runner
         runner = SupervisedRunner(device='cuda')
@@ -83,7 +84,9 @@ if __name__ == "__main__":
             num_epochs=num_epochs,
             verbose=True,
             callbacks=[
-                CECallback(),  # AccuracyCallback(accuracy_args=[1]),
-                EarlyStoppingCallback(patience=4, min_delta=0.001),
+                CECallback(),
+                # LRFinder(final_lr=0.1, num_steps=1000)
+                # AccuracyCallback(accuracy_args=[1]),
+               # EarlyStoppingCallback(patience=4, min_delta=0.001),
             ],
         )

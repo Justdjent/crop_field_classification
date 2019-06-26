@@ -8,6 +8,7 @@ from simple_net import SimpleNetRGB
 from catalyst.dl import SupervisedRunner, CheckpointCallback
 import pandas as pd
 import numpy as np
+from scipy.special import softmax
 
 
 def sigmoid(x):
@@ -28,8 +29,8 @@ dates = (
     "2017-08-19",
 )
 csv_file_path = "data/test_rgb.csv"
-model_name = "simple_net_reduce_fold1_mp"
-logdir = f"./logs/simple_net_reduce/fold1"
+model_name = "simple_net_softmax"
+logdir = f"./logs/simple_net/final"
 
 ids = pd.read_csv("data/test_rgb.csv")
 ids = ids['Field_Id'].values
@@ -64,6 +65,7 @@ runner.infer(
 
 predictions = runner.callbacks[0].predictions["logits"].reshape(dataset_length, 9)
 predictions = sigmoid(predictions)
+# predictions = softmax(predictions, axis=1)
 predictions = np.concatenate([np.expand_dims(ids, axis=1), predictions], axis=1)
 
 pred_frame = pd.DataFrame(
