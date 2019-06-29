@@ -2,7 +2,7 @@ from catalyst.dl.callbacks import InferCallback
 import collections
 import torch
 import torch.nn as nn
-from albumentations import Compose, Resize
+from albumentations import Compose, Resize, Normalize
 from africa_dataset import AfricanRGBDataset, AfricanImageDataset
 from simple_net import SimpleNetRGB
 from catalyst.dl import SupervisedRunner, CheckpointCallback
@@ -29,13 +29,17 @@ dates = (
     "2017-08-19",
 )
 csv_file_path = "data/test_rgb.csv"
-model_name = "simple_net_nocrop"
-logdir = f"./logs/simple_net_nocrop/fold0"
+model_name = "simple_net_aug"
+logdir = f"./logs/simple_net_aug/fold0"
 
 ids = pd.read_csv("data/test_rgb.csv")
 ids = ids['Field_Id'].values
 
-data_transform = Compose([Resize(64, 64)])
+additional_targets = {f'image{n}': 'image' for n, _ in enumerate(dates[:-1])}
+data_transform = Compose([Resize(16, 16),
+                          Normalize()],
+                         additional_targets=additional_targets)
+
 testset = AfricanImageDataset(
     csv_file=csv_file_path,
     dates=dates,
