@@ -3,8 +3,82 @@ import cv2
 import pandas as pd
 import numpy as np
 import os
-from utils import multindex_iloc
+from utils import multindex_iloc, pad_with_random_pixel
 import torch
+
+
+class AfricaPaddedDataset(Dataset):
+    """African Fields dataset."""
+
+    def __init__(
+        self,
+        csv_file,
+        root_dir,
+        folds=(0, 1),
+        dates=("2017-01-01"),
+        mask=False,
+        transform=None,
+        train=True
+    ):
+        """
+        Args:
+            csv_file (string): Path to the csv file with annotations.
+            root_dir (string): Image paths are relative to this dir
+            transform (callable, optional): Optional transform to be applied on a sample.
+                                            WORKS ONLY WITH 3 CHANNEL IMAGES.
+        """
+
+        self.train = train
+        self.df = pd.read_csv(csv_file)
+        if self.train:
+            self.df = self.df[self.df['Fold'].isin(folds)]
+        self.dates = dates
+        self.root_dir = root_dir
+        self.transform = transform
+        self.mask = mask
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        field_info = self.df.iloc[idx]
+        if self.train:
+            label = field_info["Crop_Id_Ne"]
+        #         field_info = field_info[self.dates]
+
+        image_sequence = []
+        for date in self.dates:
+            image_path = field_info[date]
+            image = cv2.imread(os.path.join(self.root_dir, image_path))#np.load(os.path.join(self.root_dir, image_path))#.squeeze()
+            # image = np.transpose(image, axes=(1, 2, 0))
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            mask = cv2.imread(os.path.join(self.root_dir, image_path.replace('image', 'mask')))
+            image = image*mask.astype(bool)
+            image = pad_with_random_pixel(image, 0)
+            # if self.mask:
+            #     mask_ = cv2.imread()
+            image_sequence.append(image)
+
+        targets = {f'image{n}': image_sequence[n] for n, _ in enumerate(self.dates[1:])}
+        targets['image'] = image_sequence[0]
+
+        if self.transform:
+            augmented = self.transform(**targets)
+            # image = augmented['image']
+            image_sequence = [augmented['image']]
+            for n, _ in enumerate(self.dates[1:]):
+                image_sequence.append(augmented[f'image{n}'])
+
+        image_sequence = np.array(image_sequence, dtype=np.float32)
+        image_sequence = np.transpose(image_sequence, axes=(0, 3, 1, 2))
+        # image_sequence = image_sequence / 255
+
+        if self.train:
+            sample = (torch.from_numpy(image_sequence), label-1)
+        else:
+            sample = (torch.from_numpy(image_sequence), -1)
+
+        return sample
 
 
 class AfricanMultibandDataset(Dataset):

@@ -12,7 +12,8 @@ from albumentations import (
     GridDistortion,
     ElasticTransform,
 )
-from africa_dataset import AfricanImageDataset, AfricanRGBDataset, AfricanNIRDataset, AfricanMultibandDataset
+from africa_dataset import AfricanImageDataset, AfricanRGBDataset, AfricanNIRDataset, AfricanMultibandDataset, \
+    AfricaPaddedDataset
 from simple_net import (
     SimpleNetRGB,
     SimpleNetAttentionRGB,
@@ -20,7 +21,8 @@ from simple_net import (
     SimpleNet3D,
     ModerateNetRGB
 )
-from catalyst.dl import SupervisedRunner
+from resnet import resnet18
+from catalyst.dl import SupervisedRunner, CheckpointCallback
 from catalyst.dl.callbacks import EarlyStoppingCallback, LRFinder
 from catalyst.contrib.criterion import FocalLossMultiClass
 from ce_callback import CECallback
@@ -65,13 +67,13 @@ if __name__ == "__main__":
         [Resize(16, 16), Normalize()], additional_targets=additional_targets
     )
 
-    fold_sets = [[(0, 1, 2), (0, 1, 2)]]
-    #fold_sets = [[(1, 2), (0,)], [(0, 2), (1,)], [(0, 1), (2,)]]
+    #fold_sets = [[(0, 1, 2), (0, 1, 2)]]
+    fold_sets = [[(1, 2), (0,)], [(0, 2), (1,)], [(0, 1), (2,)]]
     # # KOSTIL' ALERT
     for i, fold_set in enumerate(fold_sets):
-        logdir = f"./logs/simple_net_hsv/final"
+        logdir = f"./logs/3d_resnet_random_pad/fold{i}"
 
-        trainset = AfricanImageDataset(
+        trainset = AfricaPaddedDataset(
             csv_file=rgb_file_path,
             # nir_file=nir_file_path,
             dates=dates,
@@ -80,7 +82,7 @@ if __name__ == "__main__":
             folds=fold_set[0],
         )
 
-        valset = AfricanImageDataset(
+        valset = AfricaPaddedDataset(
             csv_file=rgb_file_path,
             # nir_file=nir_file_path,
             dates=dates,
@@ -101,7 +103,7 @@ if __name__ == "__main__":
         loaders["train"] = trainloader
         loaders["valid"] = valloader
 
-        model = SimpleNetRGB(11, channels_in=3)  # SimpleNetAttentionRGB(11)
+        model = resnet18(num_classes=9, sample_size=3, sample_duration=11)  # SimpleNetRGB(11, channels_in=3)  # SimpleNetAttentionRGB(11)
         criterion = nn.CrossEntropyLoss()  # FocalLossMultiClass()
         optimizer = torch.optim.Adam(
             model.parameters()
@@ -121,8 +123,6 @@ if __name__ == "__main__":
             verbose=True,
             callbacks=[
                 CECallback(),
-                # LRFinder(final_lr=0.1, num_steps=1000)
-                # AccuracyCallback(accuracy_args=[1]),
-                # EarlyStoppingCallback(patience=4, min_delta=0.001),
+                # CheckpointCallback(resume=f"pretrained/resnet-18-fixed.pth")
             ],
         )
