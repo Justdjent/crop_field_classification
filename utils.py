@@ -34,4 +34,24 @@ def pad_with_random_pixel(img, pad_size):
     return out_img
 
 
+def pad_with_wrap(img, pad_size):
+
+    # get pad dims
+    h, w, c = img.shape
+    top = (pad_size - h) // 2
+    bottom = pad_size - top - h
+    left = (pad_size - w) // 2
+    right = pad_size - left - w
+
+    # get pad list
+    px_dict = generate_pixel_list(img)
+    np.random.shuffle(px_dict)
+    # replace zeros with list values
+    np.place(img, img == 0, px_dict)
+
+    # bad an image
+    out_img = cv2.copyMakeBorder(img, bottom, top, left, right, cv2.BORDER_WRAP)
+    return out_img
+
+
 
