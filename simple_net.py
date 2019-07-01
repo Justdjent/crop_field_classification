@@ -103,28 +103,34 @@ class SimpleNet3D(nn.Module):
         self.conv_1 = nn.Conv3d(channels_in, 32, 3, padding=1)
         self.relu_1 = nn.ReLU(inplace=True)
         self.bn_2 = nn.BatchNorm3d(32)
-        self.pool_2 = nn.MaxPool3d(2, 2)
+        self.pool_2 = nn.Conv3d(32, 32, 3, padding=1, stride=2)  # nn.MaxPool3d(2, 2)
         self.conv_2 = nn.Conv3d(32, 64, 3, padding=1)
         self.relu_2 = nn.ReLU(inplace=True)
         self.bn_3 = nn.BatchNorm3d(64)
-        self.pool_3 = nn.MaxPool3d(2, 2)
+        self.pool_3 = nn.Conv3d(64, 64, 3, padding=1, stride=2)  # nn.MaxPool3d(2, 2)
         self.conv_3 = nn.Conv3d(64, 128, 3, padding=1)
         self.relu_3 = nn.ReLU(inplace=True)
 
         self.global_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc_conv_1 = nn.Conv2d(256, 128, 1)
+        self.fc_conv_1 = nn.Conv2d(384, 128, 1)
         self.relu_fc_1 = nn.ReLU(inplace=True)
         self.fc_conv_2 = nn.Conv2d(128, 9, 1)
         self.relu_fc_2 = nn.ReLU(inplace=True)
 
     def forward(self, x):
         x = x.contiguous()
+        # print(x.shape)
+
         x = x.permute(0, 2, 1, 3, 4)
         x = self.relu_1(self.conv_1(x))
         x = self.bn_2(x)
+        # print(x.shape)
+
         x = self.pool_2(x)
         x = self.relu_2(self.conv_2(x))
         x = self.bn_3(x)
+        # print(x.shape)
+
         x = self.pool_3(x)
         x = self.relu_3(self.conv_3(x))
         x = x.view(x.shape[0], -1, x.shape[3], x.shape[4])

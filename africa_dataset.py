@@ -54,16 +54,22 @@ class AfricanImageDataset(Dataset):
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             # if self.mask:
             #     mask_ = cv2.imread()
-
-            if self.transform:
-                augmented = self.transform(image=image)
-                image = augmented['image']
-
-            image = image / 255
-            image = np.transpose(image, axes=(2, 0, 1))
             image_sequence.append(image)
 
+        targets = {f'image{n}': image_sequence[n] for n, _ in enumerate(self.dates[1:])}
+        targets['image'] = image_sequence[0]
+
+        if self.transform:
+            augmented = self.transform(**targets)
+            # image = augmented['image']
+            image_sequence = [augmented['image']]
+            for n, _ in enumerate(self.dates[1:]):
+                image_sequence.append(augmented[f'image{n}'])
+
         image_sequence = np.array(image_sequence, dtype=np.float32)
+        image_sequence = np.transpose(image_sequence, axes=(0, 3, 1, 2))
+        # image_sequence = image_sequence / 255
+
         if self.train:
             sample = (torch.from_numpy(image_sequence), label-1)
         else:
