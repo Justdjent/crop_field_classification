@@ -27,7 +27,7 @@ def pad_with_random_pixel(img, pad_size):
 
     # get pad list
     px_dict = generate_pixel_list(img)
-    px_dict = np.random.shuffle(px_dict)
+    np.random.shuffle(px_dict)
 
     # replace zeros with list values
     np.place(out_img, out_img == 0, px_dict)
