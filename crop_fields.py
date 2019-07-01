@@ -34,7 +34,7 @@ def normalize(x, x_min, x_max, a=0, b=255):
 # }
 
 norm_values = {
-    "TCI": {"min": 0, "max": 255}
+    "TCI": {"min": 0, "max": 255},
     # "B02": {"min": 0, "max": 65536},
     # "B01": {"min": 0, "max": 65536},
     # "B03": {"min": 0, "max": 65536},
@@ -42,7 +42,7 @@ norm_values = {
     # "B05": {"min": 0, "max": 65536},
     # "B06": {"min": 0, "max": 65536},
     # "B07": {"min": 0, "max": 65536},
-    # "B08": {"min": 0, "max": 65536},
+    "B08": {"min": 0, "max": 6000},
     # "B8A": {"min": 0, "max": 65536},
     # "B09": {"min": 0, "max": 65536},
     # "B10": {"min": 0, "max": 65536},
@@ -53,7 +53,7 @@ norm_values = {
 set_ = "test"
 IMAGES_PATH = "data/images/"
 polygons_path = f"data/{set_}/{set_}.shp"
-df_path = f"data/{set_}_rgb.csv"
+df_path = f"data/{set_}_B08.csv"
 df = pandas.DataFrame(
     columns=[
         "Field_Id",
@@ -115,8 +115,8 @@ for date in tqdm(dates):
                 ind = df.query(query).index
 
                 # Image
-                write_path = os.path.join('data/images_cropped_rgb', set_)
-                masks_write_path = os.path.join('data/masks_cropped_rgb', set_)
+                write_path = os.path.join('data/images_cropped_B08', set_)
+                masks_write_path = os.path.join('data/masks_cropped_B08', set_)
                 os.makedirs(write_path, exist_ok=True)
                 os.makedirs(masks_write_path, exist_ok=True)
                 image_path = os.path.join(write_path, f"{label['Field_Id']}_{band}_{date}.png")
@@ -128,12 +128,13 @@ for date in tqdm(dates):
                 # mask_ = polys_only == 0
                 df.loc[ind, 'Area'] = label["geometry"].area
                 # masked = np.ma.array(polys_only, mask=mask_)
-                # min_, max_ = norm_values[band]["min"], norm_values[band]["max"]
+                min_, max_ = norm_values[band]["min"], norm_values[band]["max"]
                 # norm_masked = normalize(masked, min_, max_, 0, 1)
-                # polys_only = normalize(polys_only, min_, max_, 0, 1)
+                polys_only = normalize(polys_only.data, min_, max_, 0, 255).astype(np.uint8)
+
                 polys_only = np.transpose(polys_only, axes=(1, 2, 0))
-                cv2.imwrite(image_path, cv2.cvtColor(polys_only.data, cv2.COLOR_RGB2BGR))
-                cv2.imwrite(mask_path, np.logical_and.reduce(~polys_only.mask, axis=2).astype(np.uint8) * 255)
+                cv2.imwrite(image_path, cv2.cvtColor(polys_only, cv2.COLOR_GRAY2BGR))
+                # cv2.imwrite(mask_path, np.logical_and.reduce(~polys_only.mask, axis=2).astype(np.uint8) * 255)
                 # np.save(
                 #     image_path,
                 #     polys_only,

@@ -22,7 +22,7 @@ class SELayer(nn.Module):
 class SimpleNetRGB(nn.Module):
     def __init__(self, num_dates, channels_in=3):
         super().__init__()
-        input_size = 3*num_dates
+        input_size = channels_in*num_dates
         self.conv_1 = nn.Conv2d(input_size, 64, 3, padding=1)
         self.relu_1 = nn.ReLU(inplace=True)
         self.conv_2 = nn.Conv2d(64, 64, 3, padding=1)

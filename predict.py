@@ -2,8 +2,8 @@ from catalyst.dl.callbacks import InferCallback
 import collections
 import torch
 import torch.nn as nn
-from albumentations import Compose, Resize
-from africa_dataset import AfricanImageDataset
+from albumentations import Compose, Resize, Normalize
+from africa_dataset import AfricanImageDataset, AfricanNIRDataset
 from simple_net import SimpleNetRGB
 from catalyst.dl import SupervisedRunner, CheckpointCallback
 import pandas as pd
@@ -30,13 +30,17 @@ dates = (
 )
 
 csv_file_path = "data/train_rgb.csv"
-model_name = "simple_net_nocrop"
-logdir = f"./logs/simple_net_nocrop/fold0"
+model_name = "simple_net_nocrop_16"
+logdir = f"./logs/simple_net_nocrop_16/fold2"
 
 ids = pd.read_csv("data/train_rgb.csv")
 ids = ids[ids['Fold'] == 2]["Field_Id"].values
 
-data_transform = Compose([Resize(64, 64)])
+additional_targets = {f"image{n}": "image" for n, _ in enumerate(dates[:-1])}
+data_transform = Compose(
+    [Resize(16, 16), Normalize()], additional_targets=additional_targets
+)
+
 testset = AfricanImageDataset(
     csv_file=csv_file_path,
     dates=dates,
@@ -50,7 +54,7 @@ dataset_length = len(testset)
 loaders = collections.OrderedDict()
 testloader = torch.utils.data.DataLoader(testset, shuffle=False)
 
-model = SimpleNetRGB(11)
+model = SimpleNetRGB(11)  # , channels_in=1)
 runner = SupervisedRunner(device="cuda")
 
 loaders["valid"] = testloader

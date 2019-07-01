@@ -7,6 +7,149 @@ from utils import multindex_iloc
 import torch
 
 
+class AfricanMultibandDataset(Dataset):
+    """African Fields dataset."""
+
+    def __init__(
+        self,
+        rgb_file,
+        nir_file,
+        root_dir,
+        folds=(0, 1),
+        dates=("2017-01-01"),
+        mask=False,
+        transform=None,
+        train=True
+    ):
+        """
+        Args:
+            csv_file (string): Path to the csv file with annotations.
+            root_dir (string): Image paths are relative to this dir
+            transform (callable, optional): Optional transform to be applied on a sample.
+                                            WORKS ONLY WITH 3 CHANNEL IMAGES.
+        """
+
+        self.train = train
+        self.df_rgb = pd.read_csv(rgb_file)
+        self.df_nir = pd.read_csv(nir_file)
+
+
+        if self.train:
+            self.df_rgb = self.df_rgb[self.df_rgb['Fold'].isin(folds)]
+            self.df_nir = self.df_rgb[self.df_rgb['Fold'].isin(folds)]
+
+        self.dates = dates
+        self.root_dir = root_dir
+        self.transform = transform
+        self.mask = mask
+
+    def __len__(self):
+        return len(self.df_rgb)
+
+    def __getitem__(self, idx):
+        field_info_rgb = self.df_rgb.iloc[idx]
+        field_info_nir = self.df_nir.iloc[idx]
+
+        if self.train:
+            label = field_info_rgb["Crop_Id_Ne"]
+
+        image_sequence = []
+        for date in self.dates:
+            image_path = field_info_rgb[date]
+            nir_path = field_info_nir[date]
+            nir_image = cv2.imread(os.path.join(self.root_dir, image_path), cv2.IMREAD_GRAYSCALE)
+            image = cv2.imread(os.path.join(self.root_dir, image_path))
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            image[:, :, 2] = nir_image
+            image_sequence.append(image)
+
+        targets = {f'image{n}': image_sequence[n] for n, _ in enumerate(self.dates[1:])}
+        targets['image'] = image_sequence[0]
+
+        if self.transform:
+            augmented = self.transform(**targets)
+            image_sequence = [augmented['image']]
+            for n, _ in enumerate(self.dates[1:]):
+                image_sequence.append(augmented[f'image{n}'])
+
+        image_sequence = np.array(image_sequence, dtype=np.float32)
+        # image_sequence = np.expand_dims(image_sequence, axis=3)
+        image_sequence = np.transpose(image_sequence, axes=(0, 3, 1, 2))
+
+        if self.train:
+            sample = (torch.from_numpy(image_sequence), label-1)
+        else:
+            sample = (torch.from_numpy(image_sequence), -1)
+
+        return sample
+
+
+class AfricanNIRDataset(Dataset):
+    """African Fields dataset."""
+
+    def __init__(
+        self,
+        csv_file,
+        root_dir,
+        folds=(0, 1),
+        dates=("2017-01-01"),
+        mask=False,
+        transform=None,
+        train=True
+    ):
+        """
+        Args:
+            csv_file (string): Path to the csv file with annotations.
+            root_dir (string): Image paths are relative to this dir
+            transform (callable, optional): Optional transform to be applied on a sample.
+                                            WORKS ONLY WITH 3 CHANNEL IMAGES.
+        """
+
+        self.train = train
+        self.df = pd.read_csv(csv_file)
+        if self.train:
+            self.df = self.df[self.df['Fold'].isin(folds)]
+        self.dates = dates
+        self.root_dir = root_dir
+        self.transform = transform
+        self.mask = mask
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        field_info = self.df.iloc[idx]
+        if self.train:
+            label = field_info["Crop_Id_Ne"]
+
+        image_sequence = []
+        for date in self.dates:
+            image_path = field_info[date]
+            image = cv2.imread(os.path.join(self.root_dir, image_path))
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            image_sequence.append(image)
+
+        targets = {f'image{n}': image_sequence[n] for n, _ in enumerate(self.dates[1:])}
+        targets['image'] = image_sequence[0]
+
+        if self.transform:
+            augmented = self.transform(**targets)
+            image_sequence = [augmented['image'][:, :, 0]]
+            for n, _ in enumerate(self.dates[1:]):
+                image_sequence.append(augmented[f'image{n}'][:, :, 0])
+
+        image_sequence = np.array(image_sequence, dtype=np.float32)
+        image_sequence = np.expand_dims(image_sequence, axis=3)
+        image_sequence = np.transpose(image_sequence, axes=(0, 3, 1, 2))
+
+        if self.train:
+            sample = (torch.from_numpy(image_sequence), label-1)
+        else:
+            sample = (torch.from_numpy(image_sequence), -1)
+
+        return sample
+
+
 class AfricanImageDataset(Dataset):
     """African Fields dataset."""
 
@@ -118,7 +261,7 @@ class AfricanRGBDataset(Dataset):
         image_sequence = []
         for date in self.dates:
             image_path = field_info[date]
-            image = np.load(os.path.join(self.root_dir, image_path))#.squeeze()
+            image = np.load(os.path.join(self.root_dir, image_path))
             image = np.transpose(image, axes=(1, 2, 0))
 
             if self.transform:

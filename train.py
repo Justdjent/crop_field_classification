@@ -12,7 +12,7 @@ from albumentations import (
     GridDistortion,
     ElasticTransform,
 )
-from africa_dataset import AfricanImageDataset, AfricanRGBDataset
+from africa_dataset import AfricanImageDataset, AfricanRGBDataset, AfricanNIRDataset, AfricanMultibandDataset
 from simple_net import (
     SimpleNetRGB,
     SimpleNetAttentionRGB,
@@ -29,7 +29,7 @@ from adamw import AdamW
 if __name__ == "__main__":
     bs = 32
     num_workers = 3
-    num_epochs = 40
+    num_epochs = 35
     dates = (
         "2017-01-01",
         "2017-01-31",
@@ -43,7 +43,8 @@ if __name__ == "__main__":
         "2017-08-04",
         "2017-08-19",
     )
-    csv_file_path = "data/train_rgb.csv"
+    rgb_file_path = "data/train_rgb.csv"
+    nir_file_path = "data/train_b08.csv"
 
     additional_targets = {f"image{n}": "image" for n, _ in enumerate(dates[:-1])}
     data_transform = Compose(
@@ -64,14 +65,15 @@ if __name__ == "__main__":
         [Resize(16, 16), Normalize()], additional_targets=additional_targets
     )
 
-    # [[(0, 1, 2), (0, 1, 2)]]
-    fold_sets = [[(1, 2), (0,)], [(0, 2), (1,)], [(0, 1), (2,)]]
+    fold_sets = [[(0, 1, 2), (0, 1, 2)]]
+    #fold_sets = [[(1, 2), (0,)], [(0, 2), (1,)], [(0, 1), (2,)]]
     # # KOSTIL' ALERT
     for i, fold_set in enumerate(fold_sets):
-        logdir = f"./logs/simple_net_3d_aug_nomax/fold{i}"
+        logdir = f"./logs/simple_net_hsv/final"
 
         trainset = AfricanImageDataset(
-            csv_file=csv_file_path,
+            csv_file=rgb_file_path,
+            # nir_file=nir_file_path,
             dates=dates,
             root_dir="./",
             transform=data_transform,
@@ -79,7 +81,8 @@ if __name__ == "__main__":
         )
 
         valset = AfricanImageDataset(
-            csv_file=csv_file_path,
+            csv_file=rgb_file_path,
+            # nir_file=nir_file_path,
             dates=dates,
             root_dir="./",
             folds=fold_set[1],
@@ -98,7 +101,7 @@ if __name__ == "__main__":
         loaders["train"] = trainloader
         loaders["valid"] = valloader
 
-        model = SimpleNet3D(11)  # SimpleNetAttentionRGB(11)
+        model = SimpleNetRGB(11, channels_in=3)  # SimpleNetAttentionRGB(11)
         criterion = nn.CrossEntropyLoss()  # FocalLossMultiClass()
         optimizer = torch.optim.Adam(
             model.parameters()
