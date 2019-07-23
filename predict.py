@@ -3,7 +3,7 @@ import collections
 import torch
 import torch.nn as nn
 from albumentations import Compose, Resize, Normalize
-from africa_dataset import AfricanRGBDataset, AfricanImageDataset, AfricanNIRDataset
+from africa_dataset import AfricanImageDataset, AfricanNIRDataset
 from simple_net import SimpleNetRGB
 from catalyst.dl import SupervisedRunner, CheckpointCallback
 import pandas as pd
@@ -28,24 +28,25 @@ dates = (
     "2017-08-04",
     "2017-08-19",
 )
-csv_file_path = "data/test_rgb.csv"
-model_name = "simple_net_hsv"
-logdir = f"./logs/simple_net_hsv/final"
 
-ids = pd.read_csv("data/test_b08.csv")
-ids = ids['Field_Id'].values
+csv_file_path = "data/train_rgb.csv"
+model_name = "simple_net_nocrop_16"
+logdir = f"./logs/simple_net_nocrop_16/fold2"
 
-additional_targets = {f'image{n}': 'image' for n, _ in enumerate(dates[:-1])}
-data_transform = Compose([Resize(16, 16),
-                          Normalize()],
-                         additional_targets=additional_targets)
+ids = pd.read_csv("data/train_rgb.csv")
+ids = ids[ids['Fold'] == 2]["Field_Id"].values
+
+additional_targets = {f"image{n}": "image" for n, _ in enumerate(dates[:-1])}
+data_transform = Compose(
+    [Resize(16, 16), Normalize()], additional_targets=additional_targets
+)
 
 testset = AfricanImageDataset(
     csv_file=csv_file_path,
     dates=dates,
     root_dir="./",
     transform=data_transform,
-    train=False,
+    folds=(2,),
 )
 
 dataset_length = len(testset)
@@ -53,7 +54,7 @@ dataset_length = len(testset)
 loaders = collections.OrderedDict()
 testloader = torch.utils.data.DataLoader(testset, shuffle=False)
 
-model = SimpleNetRGB(11, channels_in=3)
+model = SimpleNetRGB(11)  # , channels_in=1)
 runner = SupervisedRunner(device="cuda")
 
 loaders["valid"] = testloader
@@ -69,23 +70,9 @@ runner.infer(
 
 predictions = runner.callbacks[0].predictions["logits"].reshape(dataset_length, 9)
 predictions = sigmoid(predictions)
-# predictions = softmax(predictions, axis=1)
-predictions = np.concatenate([np.expand_dims(ids, axis=1), predictions], axis=1)
+predictions = np.argmax(predictions, axis=1) + 1
 
-pred_frame = pd.DataFrame(
-    predictions,
-    columns=[
-        "field_id",
-        "crop_id_1",
-        "crop_id_2",
-        "crop_id_3",
-        "crop_id_4",
-        "crop_id_5",
-        "crop_id_6",
-        "crop_id_7",
-        "crop_id_8",
-        "crop_id_9",
-    ]
-)
-pred_frame['field_id'] = pred_frame['field_id'].astype(np.int64)
-pred_frame.to_csv(f'data/submissions/{model_name}.csv', index=False)
+pred_frame = {"Field_Id": ids, "Predictions": predictions}
+
+pred_frame = pd.DataFrame(pred_frame)
+pred_frame.to_csv(f"data/validation/{model_name}_valid.csv", index=False)

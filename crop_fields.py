@@ -84,6 +84,7 @@ def run(dataroot):
 
     dates = os.listdir(IMAGES_PATH)
 
+
     for date in tqdm(dates):
         for band in tqdm(norm_values.keys()):
             with rasterio.open(
@@ -139,12 +140,10 @@ def run(dataroot):
                     #     image_path,
                     #     polys_only,
                     # )
-
     df.to_csv(df_path, index=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
     parser.add_argument('--dataroot', type=str,
                         default='data',
                         help='path to dataset')
