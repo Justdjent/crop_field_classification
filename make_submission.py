@@ -3,7 +3,7 @@ import collections
 import torch
 import torch.nn as nn
 from albumentations import Compose, Resize, Normalize
-from africa_dataset import AfricanRGBDataset, AfricanImageDataset
+from africa_dataset import AfricanRGBDataset, AfricanImageDataset, AfricanNIRDataset
 from simple_net import SimpleNetRGB
 from catalyst.dl import SupervisedRunner, CheckpointCallback
 import pandas as pd
@@ -29,10 +29,10 @@ dates = (
     "2017-08-19",
 )
 csv_file_path = "data/test_rgb.csv"
-model_name = "simple_net_aug"
-logdir = f"./logs/simple_net_aug/fold0"
+model_name = "simple_net_hsv"
+logdir = f"./logs/simple_net_hsv/final"
 
-ids = pd.read_csv("data/test_rgb.csv")
+ids = pd.read_csv("data/test_b08.csv")
 ids = ids['Field_Id'].values
 
 additional_targets = {f'image{n}': 'image' for n, _ in enumerate(dates[:-1])}
@@ -53,7 +53,7 @@ dataset_length = len(testset)
 loaders = collections.OrderedDict()
 testloader = torch.utils.data.DataLoader(testset, shuffle=False)
 
-model = SimpleNetRGB(11)
+model = SimpleNetRGB(11, channels_in=3)
 runner = SupervisedRunner(device="cuda")
 
 loaders["valid"] = testloader
