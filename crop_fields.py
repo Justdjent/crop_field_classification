@@ -35,7 +35,7 @@ def normalize(x, x_min, x_max, a=0, b=255):
 
 def run(dataroot):
     norm_values = {
-        "TCI": {"min": 0, "max": 255}
+        # "TCI": {"min": 0, "max": 255},
         # "B02": {"min": 0, "max": 65536},
         # "B01": {"min": 0, "max": 65536},
         # "B03": {"min": 0, "max": 65536},
@@ -49,6 +49,7 @@ def run(dataroot):
         # "B10": {"min": 0, "max": 65536},
         # "B11": {"min": 0, "max": 65536},
         # "B12": {"min": 0, "max": 65536},
+        "ndvi": {"min": -1, "max": 1},
     }
 
     set_ = "train"
@@ -87,8 +88,12 @@ def run(dataroot):
 
     for date in tqdm(dates):
         for band in tqdm(norm_values.keys()):
+            if band == 'ndvi':
+                postfix = ".tif"
+            else:
+                postfix = '.jp2'
             with rasterio.open(
-                os.path.join(IMAGES_PATH, date, "full", band + ".jp2")
+                os.path.join(IMAGES_PATH, date, "full", band + postfix)
             ) as dataset:
                 for label in labels.iterrows():
                     # Dataframe
@@ -117,8 +122,8 @@ def run(dataroot):
                     ind = df.query(query).index
 
                     # Image
-                    write_path = os.path.join(f'{dataroot}/images_cropped_rgb', set_)
-                    masks_write_path = os.path.join(f'{dataroot}/masks_cropped_rgb', set_)
+                    write_path = os.path.join(f'{dataroot}/images_cropped_ndvi', set_)
+                    masks_write_path = os.path.join(f'{dataroot}/masks_cropped_ndvi', set_)
                     os.makedirs(write_path, exist_ok=True)
                     os.makedirs(masks_write_path, exist_ok=True)
                     image_path = os.path.join(write_path, f"{label['Field_Id']}_{band}_{date}.png")
