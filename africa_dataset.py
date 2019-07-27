@@ -3,7 +3,7 @@ import cv2
 import pandas as pd
 import numpy as np
 import os
-from utils import multindex_iloc, pad_with_random_pixel
+from utils import multindex_iloc, pad_with_random_pixel, pad_with_wrap
 import torch
 
 
@@ -55,6 +55,7 @@ class AfricaPaddedDataset(Dataset):
             mask = cv2.imread(os.path.join(self.root_dir, image_path.replace('image', 'mask')))
             image = image*mask.astype(bool)
             image = pad_with_random_pixel(image, 0)
+            # image = pad_with_wrap(image, 64)
             # if self.mask:
             #     mask_ = cv2.imread()
             image_sequence.append(image)

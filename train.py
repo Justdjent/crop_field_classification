@@ -14,6 +14,7 @@ from albumentations import (
 )
 from africa_dataset import AfricanImageDataset, AfricanRGBDataset, AfricanNIRDataset, AfricanMultibandDataset, \
     AfricaPaddedDataset
+import argparse
 from simple_net import (
     SimpleNetRGB,
     SimpleNetAttentionRGB,
@@ -22,16 +23,26 @@ from simple_net import (
     ModerateNetRGB
 )
 from resnet import resnet18
-from catalyst.dl import SupervisedRunner, CheckpointCallback
+from catalyst.dl import SupervisedRunner, CheckpointCallback, AccuracyCallback
 from catalyst.dl.callbacks import EarlyStoppingCallback, LRFinder
 from catalyst.contrib.criterion import FocalLossMultiClass
 from ce_callback import CECallback
 from adamw import AdamW
+from utils import AerageMeanAccuracyCallback
+
 
 if __name__ == "__main__":
-    bs = 32
-    num_workers = 3
-    num_epochs = 35
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--root', type=str,
+                        default='data',
+                        help='path to dataset')
+    parser.add_argument("--bs", type=int, default=32, help='batch_size')
+    parser.add_argument("--num_workers", default=3)
+    parser.add_argument("--num_epochs", default=35)
+    args = parser.parse_args()
+    bs = args.bs
+    num_workers = args.num_workers
+    num_epochs = args.num_epochs
     dates = (
         "2017-01-01",
         "2017-01-31",
@@ -45,8 +56,8 @@ if __name__ == "__main__":
         "2017-08-04",
         "2017-08-19",
     )
-    rgb_file_path = "data/train_rgb.csv"
-    nir_file_path = "data/train_b08.csv"
+    rgb_file_path = f"{args.root}/train_rgb.csv"
+    nir_file_path = f"{args.root}/train_b08.csv"
 
     additional_targets = {f"image{n}": "image" for n, _ in enumerate(dates[:-1])}
     data_transform = Compose(
@@ -123,6 +134,7 @@ if __name__ == "__main__":
             verbose=True,
             callbacks=[
                 CECallback(),
+                AerageMeanAccuracyCallback(accuracy_args=[1, 3, 5])
                 # CheckpointCallback(resume=f"pretrained/resnet-18-fixed.pth")
             ],
         )

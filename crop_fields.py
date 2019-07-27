@@ -122,8 +122,8 @@ def run(dataroot):
                     ind = df.query(query).index
 
                     # Image
-                    write_path = os.path.join(f'{dataroot}/images_cropped_ndvi', set_)
-                    masks_write_path = os.path.join(f'{dataroot}/masks_cropped_ndvi', set_)
+                    write_path = os.path.join(f'{dataroot}/images_cropped_{band}', set_)
+                    masks_write_path = os.path.join(f'{dataroot}/masks_cropped_{band}', set_)
                     os.makedirs(write_path, exist_ok=True)
                     os.makedirs(masks_write_path, exist_ok=True)
                     image_path = os.path.join(write_path, f"{label['Field_Id']}_{band}_{date}.png")
