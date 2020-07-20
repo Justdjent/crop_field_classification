@@ -11,6 +11,7 @@ from albumentations import (
     RandomRotate90,
     GridDistortion,
     ElasticTransform,
+    RandomCrop
 )
 from africa_dataset import AfricanImageDataset, AfricanRGBDataset, AfricanNIRDataset, AfricanMultibandDataset, \
     AfricaPaddedDataset
@@ -62,7 +63,7 @@ if __name__ == "__main__":
     additional_targets = {f"image{n}": "image" for n, _ in enumerate(dates[:-1])}
     data_transform = Compose(
         [
-            Resize(16, 16),
+            RandomCrop(128, 128),
             VerticalFlip(p=0.3),
             Transpose(p=0.3),
             ShiftScaleRotate(p=0.3),
@@ -75,7 +76,8 @@ if __name__ == "__main__":
     )
 
     val_transform = Compose(
-        [Resize(16, 16), Normalize()], additional_targets=additional_targets
+        [RandomCrop(128, 128), 
+         Normalize()], additional_targets=additional_targets
     )
 
     #fold_sets = [[(0, 1, 2), (0, 1, 2)]]
@@ -114,7 +116,8 @@ if __name__ == "__main__":
         loaders["train"] = trainloader
         loaders["valid"] = valloader
 
-        model = resnet18(num_classes=9, sample_size=3, sample_duration=11)  # SimpleNetRGB(11, channels_in=3)  # SimpleNetAttentionRGB(11)
+        # model = resnet18(num_classes=9, sample_size=3, sample_duration=11)
+        model = SimpleNetRGB(11, channels_in=3)  # SimpleNetAttentionRGB(11)
         criterion = nn.CrossEntropyLoss()  # FocalLossMultiClass()
         optimizer = torch.optim.Adam(
             model.parameters()

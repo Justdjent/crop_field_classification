@@ -54,7 +54,8 @@ class AfricaPaddedDataset(Dataset):
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             mask = cv2.imread(os.path.join(self.root_dir, image_path.replace('image', 'mask')))
             image = image*mask.astype(bool)
-            image = pad_with_random_pixel(image, 0)
+            image = pad_with_random_pixel(image, 128)
+            # print(image.shape)
             # image = pad_with_wrap(image, 64)
             # if self.mask:
             #     mask_ = cv2.imread()
@@ -73,7 +74,8 @@ class AfricaPaddedDataset(Dataset):
         image_sequence = np.array(image_sequence, dtype=np.float32)
         image_sequence = np.transpose(image_sequence, axes=(0, 3, 1, 2))
         # image_sequence = image_sequence / 255
-
+        # print(image_sequence.max())
+        # print(image_sequence.min())
         if self.train:
             sample = (torch.from_numpy(image_sequence), label-1)
         else:

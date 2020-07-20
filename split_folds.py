@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument('--df_path', type=str,
                         default='data',
                         help='path to dataset')
-    parser.add_argument('--df_path', type=str,
+    parser.add_argument('--transfer', type=str,
                         default='data',
                         help='path to dataset')
     args = parser.parse_args()
